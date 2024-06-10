@@ -8,7 +8,7 @@ T = TypeVar("T")
 class ApiListResponse(BaseModel, Generic[T]):
     code: int = 200
     message: str = "OK"
-    items: List[T]
+    items: Optional[List[T]] = None
 
     @staticmethod
     def ok(items: List[T]):
