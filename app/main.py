@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 
 from PIL import Image
@@ -6,6 +7,7 @@ from fastapi import UploadFile, File
 
 from app.api_response import ApiListResponse
 from app.detection import Detection
+from app.history import HistorySaveRequest, save_history
 from model.detect import detect
 
 app = FastAPI()
@@ -23,5 +25,9 @@ async def detect_image(file: UploadFile = File(...)) -> ApiListResponse[Detectio
     except Exception as err:
         return ApiListResponse.bad_request(str(err))
 
-    results = detect(img)
-    return ApiListResponse[Detection].ok(list(map(convert, results)))
+    results = list(map(convert, detect(img)))
+    asyncio.create_task(
+        save_history(HistorySaveRequest(image=img, detections=results))
+    )
+
+    return ApiListResponse[Detection].ok(results)
