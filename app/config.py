@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    history_api: str = Field(alias='history_api_host', default='localhost:8080')
+    history_api: str = Field(alias='HISTORY_API_HOST', default='http://127.0.0.1:8080')
 
     class Config:
         env_file = '.env'

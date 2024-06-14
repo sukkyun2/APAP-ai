@@ -8,8 +8,8 @@ import httpx
 from PIL.Image import Image
 from pydantic import BaseModel
 
+from app.config import settings
 from app.detection import Detection
-from app.setting import settings
 
 
 class HistorySaveRequest(BaseModel):
@@ -37,6 +37,6 @@ class HistorySaveRequest(BaseModel):
 async def save_history(req: HistorySaveRequest):
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(settings.histroy_api, data=req.dict())
+            await client.post(f"{settings.history_api}/info", data=req.dict())
     except httpx.RequestError as exc:
         print(str(exc))
