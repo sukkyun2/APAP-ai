@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
-from PIL import Image
+from PIL.Image import Image
 from ultralytics import YOLO
 
 from app.config import settings
