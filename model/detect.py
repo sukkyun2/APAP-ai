@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import numpy as np
+from PIL import Image as img
 from PIL.Image import Image
 from ultralytics import YOLO
 
@@ -20,7 +21,7 @@ class DetectionResult:
 
 def detect(image: Image) -> Tuple[Image, List[dict]]:
     result = model.predict(image)[0]
-    predicted_image = Image.fromarray(np.uint8(result.plot(show=False)))
+    predicted_image = img.fromarray(np.uint8(result.plot(show=False)))
 
     detections = []
     for box in result.boxes:
@@ -36,5 +37,5 @@ def detect(image: Image) -> Tuple[Image, List[dict]]:
 
 if __name__ == '__main__':
     img_path = '../tests/resources/bus.jpg'
-    img = Image.open(img_path)
+    img = img.open(img_path)
     detect(img)
