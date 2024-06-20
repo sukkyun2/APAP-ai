@@ -14,7 +14,6 @@ app = FastAPI()
 
 
 def convert(result: dict):
-    del result['class']
     return Detection(**result)
 
 
@@ -25,9 +24,10 @@ async def detect_image(file: UploadFile = File(...)) -> ApiListResponse[Detectio
     except Exception as err:
         return ApiListResponse.bad_request(str(err))
 
-    results = list(map(convert, detect(img)))
+    predicted_image, row_detections = detect(img)
+    detections = list(map(convert, row_detections))
     asyncio.create_task(
-        save_history(HistorySaveRequest(image=img, detections=results))
+        save_history(HistorySaveRequest(image=predicted_image, detections=detections))
     )
 
-    return ApiListResponse[Detection].ok(results)
+    return ApiListResponse[Detection].ok(detections)
