@@ -17,7 +17,7 @@ def convert(result: dict):
     return Detection(**result)
 
 
-@app.post("/detect", response_model=ApiListResponse[Detection])
+@app.post("/detect-image", response_model=ApiListResponse[Detection])
 async def detect_image(file: UploadFile = File(...)) -> ApiListResponse[Detection]:
     try:
         img = Image.open(BytesIO(await file.read()))
