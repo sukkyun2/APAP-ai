@@ -3,9 +3,5 @@ import dataclasses
 
 @dataclasses.dataclass
 class Detection:
-    xmin: float
-    ymin: float
-    xmax: float
-    ymax: float
+    class_name: str
     confidence: float
-    name: str

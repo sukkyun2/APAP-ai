@@ -1,33 +1,41 @@
-from typing import List
+from typing import List, Tuple
 
-import cv2
-import torch
-from PIL import Image
+import numpy as np
+from PIL import Image as img
+from PIL.Image import Image
+from ultralytics import YOLO
 
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+from app.config import settings
 
-
-def detect(image: Image) -> List[dict]:
-    results = model(image)
-    return results.pandas().xyxy[0].to_dict(orient='records')
+model = YOLO(settings.yolo_weight_path)
 
 
-def load_image(image_path: str):
-    return Image.open(image_path)
+class DetectionResult:
+    class_name: str
+    confidence: float
+
+    def __init__(self, class_name, confidence):
+        self.class_name = class_name
+        self.confidence = confidence
 
 
-def visualize_results(results):
-    results.render()
-    img_with_boxes = results.ims[0]
+def detect(image: Image) -> Tuple[Image, List[dict]]:
+    result = model.predict(image)[0]
+    predicted_image = img.fromarray(np.uint8(result.plot(show=False)))
 
-    img_with_boxes = cv2.cvtColor(img_with_boxes, cv2.COLOR_RGB2BGR)
-    cv2.imshow('YOLOv5 Inference', img_with_boxes)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    detections = []
+    for box in result.boxes:
+        class_name = result.names[box.cls[0].item()]
+        confidence = box.conf[0].item()
+        detections.append({
+            'class_name': class_name,
+            'confidence': confidence
+        })
+
+    return predicted_image, detections
 
 
 if __name__ == '__main__':
-    img_path = 'https://ultralytics.com/images/bus.jpg'
-    img = load_image(img_path)
-    results = model(img)
-    visualize_results(results)
+    img_path = '../tests/resources/bus.jpg'
+    img = img.open(img_path)
+    detect(img)

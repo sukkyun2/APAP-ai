@@ -56,8 +56,8 @@ def test_detect_invalid_file_format(api_client: TestClient):
 async def test_save_detections_api(httpx_mock: HTTPXMock):
     given_image = Image.open('resources/bus.jpg')
     given_detections = [
-        Detection(xmin=671.787902, ymin=395.3720703125, xmax=810.0, ymax=878.3613, confidence=0.896, name='person'),
-        Detection(xmin=12.65086, ymin=223.37843, xmax=809.7070, ymax=788.51635, confidence=0.8493, name='bus')
+        Detection(class_name='person', confidence=0.884),
+        Detection(class_name='bus', confidence=0.374),
     ]
     httpx_mock.add_response()
     req = HistorySaveRequest(image=given_image, detections=given_detections)
@@ -70,4 +70,4 @@ async def test_save_detections_api(httpx_mock: HTTPXMock):
 
     assert request.headers["Content-Type"] == "application/x-www-form-urlencoded"
     for key in ['datetime', 'label', 'image']:
-        assert key.encode()
+        assert key.encode() in request.content

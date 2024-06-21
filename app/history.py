@@ -19,16 +19,17 @@ class HistorySaveRequest(BaseModel):
 
     def __init__(self, image: Image, detections: List[Detection]):
         def convert_base64():
+            image_format = 'JPEG'
             buffered = BytesIO()
-            image.save(buffered, format=image.format)
+            image.save(buffered, format=image_format)
 
             base64_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            mime_type = f"image/{image.format.lower()}"
+            mime_type = f"image/{image_format.lower()}"
 
             return f"data:{mime_type};base64,{base64_str}"
 
         def summary_detections():
-            counter = Counter(list(map(lambda d: d.name, detections)))
+            counter = Counter(list(map(lambda d: d.class_name, detections)))
             return ' '.join(f'{k} {v}' for k, v in counter.items())
 
         super().__init__(datetime=datetime.now().isoformat(), label=summary_detections(), image=convert_base64())
