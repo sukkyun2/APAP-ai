@@ -80,5 +80,5 @@ jobs:
           port: ${{ secrets.REMOTE_SSH_PORT }}
           script: |
             whoami
-            docker stop ${{ env.CONTAINER_NAME }} && docker rm ${{ env.CONTAINER_NAME }} && docker rmi ${{ env.DOCKER_IMAGE }}:latest
+            docker stop ${{ env.CONTAINER_NAME }} && docker rm ${{ env.CONTAINER_NAME }}
             docker run -d -p 8000:8000 --name ${{ env.CONTAINER_NAME }} --restart always ${{ env.DOCKER_IMAGE }}:latest
