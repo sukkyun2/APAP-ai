@@ -2,7 +2,7 @@ name: Deploy with Docker
 
 on:
   push:
-    branches: [ main, build/deploy-ec2 ]
+    branches: [ main, build/* ]
 
 env:
   DOCKER_IMAGE: ghcr.io/${{ github.actor }}/apap.ai
