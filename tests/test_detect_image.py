@@ -18,12 +18,12 @@ def get_file_name(file_path: str):
 
 
 def test_detect_image(api_client: TestClient, httpx_mock: HTTPXMock):
-    given_file_path = 'resources/bus.jpg'
+    given_file_path = 'tests/resources/bus.jpg'
     httpx_mock.add_response()
 
     with open(given_file_path, 'rb') as file:
         response = api_client.post(
-            '/detect/',
+            '/detect-image/',
             files={'file': (get_file_name(given_file_path), file, 'text/plain')}
         )
 
@@ -36,11 +36,11 @@ def test_detect_image(api_client: TestClient, httpx_mock: HTTPXMock):
 
 
 def test_detect_invalid_file_format(api_client: TestClient):
-    given_file_path = 'resources/empty.txt'
+    given_file_path = 'tests/resources/empty.txt'
 
     with open(given_file_path, 'rb') as file:
         response = api_client.post(
-            '/detect/',
+            '/detect-image/',
             files={'file': (get_file_name(given_file_path), file, 'text/plain')}
         )
 
@@ -54,7 +54,7 @@ def test_detect_invalid_file_format(api_client: TestClient):
 
 @pytest.mark.asyncio
 async def test_save_detections_api(httpx_mock: HTTPXMock):
-    given_image = Image.open('resources/bus.jpg')
+    given_image = Image.open('tests/resources/bus.jpg')
     given_detections = [
         Detection(class_name='person', confidence=0.884),
         Detection(class_name='bus', confidence=0.374),
