@@ -1,4 +1,5 @@
 # APAP-AI
+[![Deploy with Docker](https://github.com/sukkyun2/APAP-ai/actions/workflows/deploy.yml/badge.svg)](https://github.com/sukkyun2/APAP-ai/actions/workflows/deploy.yml)
 
 This is a repository for an object detection inference API using `YOLOv5` and `FastAPI`
 
