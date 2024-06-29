@@ -38,6 +38,6 @@ class HistorySaveRequest(BaseModel):
 async def save_history(req: HistorySaveRequest):
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(f"{settings.history_api}/info", data=req.dict())
+            await client.post(f"{settings.history_api}/infos", data=req.dict())
     except httpx.RequestError as exc:
         print(str(exc))
