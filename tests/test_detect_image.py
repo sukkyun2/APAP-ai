@@ -3,9 +3,9 @@ from PIL import Image
 from fastapi.testclient import TestClient
 from pytest_httpx import HTTPXMock
 
-from app.detection import Detection
 from app.history import HistorySaveRequest, save_history
 from app.main import app
+from model.detect import Detection
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def test_detect_image(api_client: TestClient, httpx_mock: HTTPXMock):
     data = response.json()
     assert data['code'] == 200
     assert data['message'] == 'OK'
-    assert len(data['items']) > 0
+    assert not data['item']
 
 
 def test_detect_invalid_file_format(api_client: TestClient):

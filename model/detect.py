@@ -1,3 +1,4 @@
+import dataclasses
 from typing import List, Tuple
 
 import numpy as np
@@ -10,16 +11,19 @@ from app.config import settings
 model = YOLO(settings.yolo_weight_path)
 
 
-class DetectionResult:
+@dataclasses.dataclass
+class Detection:
     class_name: str
     confidence: float
 
-    def __init__(self, class_name, confidence):
-        self.class_name = class_name
-        self.confidence = confidence
+
+@dataclasses.dataclass
+class DetectionResult:
+    predicted_image: Image
+    detections: List[Detection]
 
 
-def detect(image: Image) -> Tuple[Image, List[dict]]:
+def detect(image: Image) -> DetectionResult:
     result = model.predict(image)[0]
     predicted_image = img.fromarray(np.uint8(result.plot(show=False)))
 
@@ -27,15 +31,6 @@ def detect(image: Image) -> Tuple[Image, List[dict]]:
     for box in result.boxes:
         class_name = result.names[box.cls[0].item()]
         confidence = box.conf[0].item()
-        detections.append({
-            'class_name': class_name,
-            'confidence': confidence
-        })
+        detections.append(Detection(class_name, confidence))
 
-    return predicted_image, detections
-
-
-if __name__ == '__main__':
-    img_path = '../tests/resources/bus.jpg'
-    img = img.open(img_path)
-    detect(img)
+    return DetectionResult(predicted_image, detections)

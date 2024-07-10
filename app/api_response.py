@@ -5,18 +5,18 @@ from pydantic import BaseModel
 T = TypeVar("T")
 
 
-class ApiListResponse(BaseModel, Generic[T]):
+class ApiResponse(BaseModel, Generic[T]):
     code: int = 200
     message: str = "OK"
-    items: Optional[List[T]] = None
+    item: Optional[T] = None
 
     @staticmethod
-    def ok(items: List[T]):
-        return ApiListResponse[T](code=200, message="OK", items=items)
+    def ok():
+        return ApiResponse(code=200, message="OK")
 
     @staticmethod
     def bad_request(error: str):
-        return ApiListResponse(code=400, message=error)
+        return ApiResponse(code=400, message=error)
 
     class Config:
         arbitrary_types_allowed = True
