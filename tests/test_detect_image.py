@@ -4,13 +4,7 @@ from fastapi.testclient import TestClient
 from pytest_httpx import HTTPXMock
 
 from app.history import HistorySaveRequest, save_history
-from app.main import app
 from model.detect import Detection
-
-
-@pytest.fixture
-def api_client():
-    return TestClient(app)
 
 
 def get_file_name(file_path: str):
@@ -49,7 +43,7 @@ def test_detect_invalid_file_format(api_client: TestClient):
     data = response.json()
     assert data['code'] == 400
     assert data['message'] != 'OK'
-    assert not data['items']
+    assert not data['item']
 
 
 @pytest.mark.asyncio

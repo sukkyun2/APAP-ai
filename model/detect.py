@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 from PIL import Image as img
@@ -21,6 +21,9 @@ class Detection:
 class DetectionResult:
     predicted_image: Image
     detections: List[Detection]
+
+    def get_image_to_nparray(self):
+        return np.array(self.predicted_image)
 
 
 def detect(image: Image) -> DetectionResult:
