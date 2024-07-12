@@ -1,14 +1,17 @@
 import asyncio
 from io import BytesIO
 
+import cv2
+import numpy as np
 from PIL import Image
 from fastapi import FastAPI
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from app.api_response import ApiListResponse
+from app.api_response import ApiResponse
 from app.config import settings
-from app.detection import Detection
+from app.connection_manager import ConnectionManager
 from app.history import HistorySaveRequest, save_history
 from model.detect import detect
 
@@ -22,22 +25,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-def convert(result: dict):
-    return Detection(**result)
+manager = ConnectionManager()
 
 
-@app.post("/detect-image", response_model=ApiListResponse[Detection])
-async def detect_image(file: UploadFile = File(...)) -> ApiListResponse[Detection]:
+@app.post("/api/detect-image", response_model=ApiResponse)
+@app.post("/detect-image", response_model=ApiResponse)  # TODO 추후 API 교체 후 제거
+async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     try:
         img = Image.open(BytesIO(await file.read()))
     except Exception as err:
-        return ApiListResponse.bad_request(str(err))
+        return ApiResponse.bad_request(str(err))
 
-    predicted_image, row_detections = detect(img)
-    detections = list(map(convert, row_detections))
+    result = detect(img)
     asyncio.create_task(
-        save_history(HistorySaveRequest(image=predicted_image, detections=detections))
+        save_history(HistorySaveRequest(image=result.predicted_image, detections=result.detections))
     )
 
-    return ApiListResponse[Detection].ok(detections)
+    return ApiResponse.ok()
+
+
+@app.websocket("/ws/publisher")
+async def websocket_publisher(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+            nparr = np.frombuffer(data, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            result = detect(img)
+
+            _, buffer = cv2.imencode('.jpg', result.get_image_to_nparray())
+            processed_bytes = buffer.tobytes()
+
+            await manager.broadcast(processed_bytes)
+    except WebSocketDisconnect:
+        print("Publisher disconnected")
+    finally:
+        manager.disconnect()
+
+
+@app.websocket("/ws/subscriber")
+async def websocket_subscriber(websocket: WebSocket):
+    await manager.subscribe(websocket)
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except WebSocketDisconnect:
+        print("Subscriber disconnected")
+    finally:
+        manager.unsubscribe(websocket)

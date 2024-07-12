@@ -9,7 +9,7 @@ from PIL.Image import Image
 from pydantic import BaseModel
 
 from app.config import settings
-from app.detection import Detection
+from model.detect import Detection
 
 
 class HistorySaveRequest(BaseModel):
