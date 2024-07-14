@@ -3,7 +3,7 @@ import google.generativeai as genai
 
 s3 = boto3.client('s3')
 
-GOOGLE_API_KEY = "AIzaSyCLesrwqsh0WDxRDiSm6GSocDYfB9OzcUw"
+GOOGLE_API_KEY = "secret_key"
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-pro')
 
