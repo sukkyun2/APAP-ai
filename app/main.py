@@ -14,6 +14,7 @@ from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import HistorySaveRequest, save_history
 from model.detect import detect
+import model.llm_api
 
 app = FastAPI()
 
@@ -40,6 +41,8 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     asyncio.create_task(
         save_history(HistorySaveRequest(image=result.predicted_image, detections=result.detections))
     )
+
+    print(model.llm_api.call_gemini(img, result.detections))
 
     return ApiResponse.ok()
 
