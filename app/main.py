@@ -37,9 +37,9 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     except Exception as err:
         return ApiResponse.bad_request(str(err))
 
-    result = detect(img)
+    result = detect(np.array(img))
     asyncio.create_task(
-        save_history(HistorySaveRequest(image=result.predicted_image, detections=result.detections))
+        save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
     )
 
     print(model.llm_api.call_gemini(img, result.detections))
@@ -58,7 +58,7 @@ async def websocket_publisher(websocket: WebSocket):
 
             result = detect(img)
 
-            _, buffer = cv2.imencode('.jpg', result.get_image_to_nparray())
+            _, buffer = cv2.imencode('.jpg', result.predict_image_np)
             processed_bytes = buffer.tobytes()
 
             await manager.broadcast(processed_bytes)

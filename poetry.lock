@@ -247,6 +247,22 @@ docs = ["ipython", "matplotlib", "numpydoc", "sphinx"]
 tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
+name = "deep-sort-realtime"
+version = "1.3.2"
+description = "A more realtime adaptation of Deep SORT"
+optional = false
+python-versions = "*"
+files = [
+    {file = "deep-sort-realtime-1.3.2.tar.gz", hash = "sha256:32bab92f981a274fce3ff121f35894e5adab7ca00314c113c348de7bcb82d73e"},
+    {file = "deep_sort_realtime-1.3.2-py3-none-any.whl", hash = "sha256:a6e144c888fdfb27245d2a060acbe0d2f3088448defbc419f7a26bce063bdd6c"},
+]
+
+[package.dependencies]
+numpy = "*"
+opencv-python = "*"
+scipy = "*"
+
+[[package]]
 name = "dnspython"
 version = "2.6.1"
 description = "DNS toolkit"
@@ -2549,4 +2565,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "87824efd8e1568a447496c0c7864b1bf808dc95256a9c5b018e967be8cd82702"
+content-hash = "331efdb69d9dc8761c850a43fd680c16925c13f629213e3ce9a59ce2ccaaf573"
