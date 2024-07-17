@@ -13,7 +13,7 @@ from app.api_response import ApiResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import HistorySaveRequest, save_history
-from model.detect import detect
+from model.detect import detect, track
 import model.llm_api
 
 app = FastAPI()
@@ -56,7 +56,7 @@ async def websocket_publisher(websocket: WebSocket):
             nparr = np.frombuffer(data, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-            result = detect(img)
+            result = track(img)
 
             _, buffer = cv2.imencode('.jpg', result.predict_image_np)
             processed_bytes = buffer.tobytes()

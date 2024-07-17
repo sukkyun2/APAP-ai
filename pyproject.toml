@@ -16,7 +16,6 @@ pydantic-settings = "^2.3.2"
 uvicorn = "^0.30.1"
 fastapi = "^0.111.0"
 ultralytics = "^8.2.32"
-deep-sort-realtime = "^1.3.2"
 boto3 = "^1.34.144"
 google-generativeai = "^0.7.2"
 
