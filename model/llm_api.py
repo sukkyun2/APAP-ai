@@ -38,6 +38,6 @@ def call_gemini(img, pram_list):
         temp_list.append(new_class_name)
 
     response = model.generate_content(
-        (img, "이 이미지에 대하여, 다음 object list의 요소 간 관계를 중심으로 어떤 안전사고가 예상되는 상황인지 판단해." + str(temp_list)))
+        (img, "이 이미지에 대하여, 다음 object list의 요소 간 관계를 중심으로 어떤 안전사고가 예상되는 상황인지 판단하고 위험 상황의 긴급도를 1~10 사이의 값으로 분류해." + str(temp_list)))
 
     return response.text
