@@ -1,6 +1,6 @@
 from typing import List
 
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
 class PublisherAlreadyExistsError(Exception):
@@ -33,4 +33,7 @@ class ConnectionManager:
 
     async def broadcast(self, message: bytes):
         for subscriber in self.subscribers:
-            await subscriber.send_bytes(message)
+            try:
+                await subscriber.send_bytes(message)
+            except WebSocketDisconnect:
+                self.unsubscribe(subscriber)

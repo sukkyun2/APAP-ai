@@ -4,17 +4,16 @@ from io import BytesIO
 import cv2
 import numpy as np
 from PIL import Image
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.websockets import WebSocket, WebSocketDisconnect
 
+import model.llm_api
 from app.api_response import ApiResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import HistorySaveRequest, save_history
 from model.detect import detect, track
-import model.llm_api
 
 app = FastAPI()
 
@@ -47,6 +46,11 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     return ApiResponse.ok()
 
 
+@app.get("/api/exists-publisher")
+def exists_publisher() -> ApiResponse[bool]:
+    return ApiResponse[bool].ok_with_data(bool(manager.publisher))
+
+
 @app.websocket("/ws/publisher")
 async def websocket_publisher(websocket: WebSocket):
     await manager.connect(websocket)
@@ -63,9 +67,9 @@ async def websocket_publisher(websocket: WebSocket):
 
             await manager.broadcast(processed_bytes)
     except WebSocketDisconnect:
-        print("Publisher disconnected")
-    finally:
-        manager.disconnect()
+        if not manager.subscribers:
+            manager.disconnect()
+            print("Publisher disconnected")
 
 
 @app.websocket("/ws/subscriber")
