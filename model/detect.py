@@ -3,14 +3,12 @@ from typing import List, Optional
 
 from PIL import Image as img
 from PIL.Image import Image
-from deep_sort_realtime.deepsort_tracker import DeepSort
 from numpy import ndarray
 from ultralytics import YOLO
 
 from app.config import settings
 
 model = YOLO(settings.yolo_weight_path)
-tracker = DeepSort(max_age=30, n_init=3, nn_budget=100)
 
 
 @dataclasses.dataclass
