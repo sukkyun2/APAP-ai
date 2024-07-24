@@ -15,6 +15,10 @@ class ApiResponse(BaseModel, Generic[T]):
         return ApiResponse(code=200, message="OK")
 
     @staticmethod
+    def ok_with_data(data: T):
+        return ApiResponse(code=200, message="OK", item=data)
+
+    @staticmethod
     def bad_request(error: str):
         return ApiResponse(code=400, message=error)
 

@@ -4,17 +4,16 @@ from io import BytesIO
 import cv2
 import numpy as np
 from PIL import Image
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.websockets import WebSocket, WebSocketDisconnect
 
+import model.llm_api
 from app.api_response import ApiResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import HistorySaveRequest, save_history
-from model.detect import detect
-import model.llm_api
+from model.detect import detect, track
 
 app = FastAPI()
 
@@ -37,14 +36,19 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     except Exception as err:
         return ApiResponse.bad_request(str(err))
 
-    result = detect(img)
+    result = detect(np.array(img))
     asyncio.create_task(
-        save_history(HistorySaveRequest(image=result.predicted_image, detections=result.detections))
+        save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
     )
 
     print(model.llm_api.call_gemini(img, result.detections))
 
     return ApiResponse.ok()
+
+
+@app.get("/api/exists-publisher")
+def exists_publisher() -> ApiResponse[bool]:
+    return ApiResponse[bool].ok_with_data(bool(manager.publisher))
 
 
 @app.websocket("/ws/publisher")
@@ -56,16 +60,16 @@ async def websocket_publisher(websocket: WebSocket):
             nparr = np.frombuffer(data, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-            result = detect(img)
+            result = track(img)
 
-            _, buffer = cv2.imencode('.jpg', result.get_image_to_nparray())
+            _, buffer = cv2.imencode('.jpg', result.predict_image_np)
             processed_bytes = buffer.tobytes()
 
             await manager.broadcast(processed_bytes)
     except WebSocketDisconnect:
-        print("Publisher disconnected")
-    finally:
-        manager.disconnect()
+        if not manager.subscribers:
+            manager.disconnect()
+            print("Publisher disconnected")
 
 
 @app.websocket("/ws/subscriber")
