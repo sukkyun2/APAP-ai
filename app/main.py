@@ -8,7 +8,6 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
-import model.llm_api
 from app.api_response import ApiResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
@@ -29,7 +28,6 @@ manager = ConnectionManager()
 
 
 @app.post("/api/detect-image", response_model=ApiResponse)
-@app.post("/detect-image", response_model=ApiResponse)  # TODO 추후 API 교체 후 제거
 async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     try:
         img = Image.open(BytesIO(await file.read()))
@@ -40,8 +38,6 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     asyncio.create_task(
         save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
     )
-
-    print(model.llm_api.call_gemini(img, result.detections))
 
     return ApiResponse.ok()
 
@@ -67,9 +63,8 @@ async def websocket_publisher(websocket: WebSocket):
 
             await manager.broadcast(processed_bytes)
     except WebSocketDisconnect:
-        if not manager.subscribers:
-            manager.disconnect()
-            print("Publisher disconnected")
+        manager.disconnect()
+        print("Publisher disconnected")
 
 
 @app.websocket("/ws/subscriber")
