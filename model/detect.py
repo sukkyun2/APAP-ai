@@ -24,7 +24,7 @@ class DetectionResult:
     detections: List[Detection]
 
     def get_image(self) -> Image:
-        return img.fromarray(self.predict_image_np)
+        return img.fromarray(self.predict_image_np[..., ::-1])
 
 
 def track(image_np: ndarray) -> DetectionResult:
@@ -41,7 +41,8 @@ def track(image_np: ndarray) -> DetectionResult:
 
 
 def detect(image_np: ndarray) -> DetectionResult:
-    result = model.predict(image_np)[0]
+    target_image = img.fromarray(image_np)
+    result = model.predict(target_image)[0]
 
     detections = []
     for box in result.boxes:
@@ -49,4 +50,4 @@ def detect(image_np: ndarray) -> DetectionResult:
         confidence = box.conf[0].item()
         detections.append(Detection(class_name, confidence, None))
 
-    return DetectionResult(image_np, detections)
+    return DetectionResult(result.plot(), detections)
