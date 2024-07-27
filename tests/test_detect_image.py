@@ -17,7 +17,7 @@ def test_detect_image(api_client: TestClient, httpx_mock: HTTPXMock):
 
     with open(given_file_path, 'rb') as file:
         response = api_client.post(
-            '/detect-image/',
+            '/api/detect-image/',
             files={'file': (get_file_name(given_file_path), file, 'text/plain')}
         )
 
@@ -34,7 +34,7 @@ def test_detect_invalid_file_format(api_client: TestClient):
 
     with open(given_file_path, 'rb') as file:
         response = api_client.post(
-            '/detect-image/',
+            '/api/detect-image/',
             files={'file': (get_file_name(given_file_path), file, 'text/plain')}
         )
 
