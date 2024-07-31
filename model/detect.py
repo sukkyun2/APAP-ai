@@ -1,6 +1,7 @@
 import dataclasses
 from typing import List, Optional
 
+import cv2
 from PIL import Image as img
 from PIL.Image import Image
 from numpy import ndarray
@@ -26,14 +27,18 @@ class DetectionResult:
     def get_image(self) -> Image:
         return img.fromarray(self.predict_image_np[..., ::-1])
 
+    def get_encoded_nparr(self):
+        _, predicted_encode_nparr = cv2.imencode('.jpg', self.predict_image_np)
+        return predicted_encode_nparr
+
 
 def track(image_np: ndarray) -> DetectionResult:
     result = model.track(image_np, persist=True)[0]
+    boxes = result.boxes
 
-    # boxes = result.boxes.xywh.cpu()
-    class_idxes = result.boxes.cls.int().cpu().tolist()
-    confidences = result.boxes.conf.int().cpu().tolist()
-    track_ids = result.boxes.id.int().cpu().tolist()
+    class_idxes = boxes.cls.int().cpu().tolist()
+    confidences = boxes.conf.int().cpu().tolist()
+    track_ids = boxes.id.int().cpu().tolist() if boxes.id else [None] * len(class_idxes)
 
     detections = [Detection(model.names[ci], c, t) for ci, t, c in zip(class_idxes, track_ids, confidences)]
 
