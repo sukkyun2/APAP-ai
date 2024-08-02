@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api_response import ApiResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
-from app.history import HistorySaveRequest, save_history
+from app.history import async_save_history
 from model.detect import detect, track
 
 app = FastAPI()
@@ -25,6 +25,8 @@ app.add_middleware(
 )
 
 manager = ConnectionManager()
+
+
 # video_recorder = VideoRecorder()
 
 
@@ -36,9 +38,7 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
         return ApiResponse.bad_request(str(err))
 
     result = detect(np.array(img))
-    asyncio.create_task(
-        save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
-    )
+    await async_save_history(result)
 
     return ApiResponse.ok()
 
@@ -57,11 +57,13 @@ async def websocket_publisher(websocket: WebSocket):
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)  # byte to nparr
 
             result = track(img)
+            await async_save_history(result)
 
-            #TODO 별도 이상상황으로 교체
-            # person_detected = any(det.class_name == 'person' for det in result.detections)
-            # if person_detected:
-            #     video_recorder.save_frame(result.predict_image_np)
+            # TODO 별도 이상상황으로 교체
+            cell_phone_detected = any(det.class_name == 'cell phone' for det in result.detections)
+            if cell_phone_detected:
+                await async_save_history(result)
+            # video_recorder.save_frame(result.predict_image_np)
 
             await manager.broadcast(result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:

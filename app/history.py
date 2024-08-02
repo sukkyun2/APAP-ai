@@ -1,3 +1,4 @@
+import asyncio
 import base64
 from collections import Counter
 from datetime import datetime
@@ -9,13 +10,13 @@ from PIL.Image import Image
 from pydantic import BaseModel
 
 from app.config import settings
-from model.detect import Detection
+from model.detect import Detection, DetectionResult
 
 
 class HistorySaveRequest(BaseModel):
-    datetime: str
+    localDateTime: str
     label: str
-    image: str  # encoded base64 string
+    base64Image: str
 
     def __init__(self, image: Image, detections: List[Detection]):
         def convert_base64():
@@ -32,12 +33,18 @@ class HistorySaveRequest(BaseModel):
             counter = Counter(list(map(lambda d: d.class_name, detections)))
             return ' '.join(f'{k} {v}' for k, v in counter.items())
 
-        super().__init__(datetime=datetime.now().isoformat(), label=summary_detections(), image=convert_base64())
+        super().__init__(localDateTime=datetime.now().isoformat(), label=summary_detections(), base64Image=convert_base64())
+
+
+async def async_save_history(result: DetectionResult):
+    asyncio.create_task(
+        save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
+    )
 
 
 async def save_history(req: HistorySaveRequest):
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(f"{settings.history_api}/infos", data=req.dict())
+            await client.post(f"{settings.history_api}/api/infos", json=req.dict())
     except httpx.RequestError as exc:
         print(str(exc))
