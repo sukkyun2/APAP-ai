@@ -13,7 +13,6 @@ from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import HistorySaveRequest, save_history
 from model.detect import detect, track
-from model.video_recorder import VideoRecorder
 
 app = FastAPI()
 
@@ -26,7 +25,7 @@ app.add_middleware(
 )
 
 manager = ConnectionManager()
-video_recorder = VideoRecorder()
+# video_recorder = VideoRecorder()
 
 
 @app.post("/api/detect-image", response_model=ApiResponse)
@@ -60,9 +59,9 @@ async def websocket_publisher(websocket: WebSocket):
             result = track(img)
 
             #TODO 별도 이상상황으로 교체
-            person_detected = any(det.class_name == 'person' for det in result.detections)
-            if person_detected:
-                video_recorder.save_frame(result.predict_image_np)
+            # person_detected = any(det.class_name == 'person' for det in result.detections)
+            # if person_detected:
+            #     video_recorder.save_frame(result.predict_image_np)
 
             await manager.broadcast(result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
