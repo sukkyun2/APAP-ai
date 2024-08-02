@@ -38,7 +38,7 @@ def track(image_np: ndarray) -> DetectionResult:
 
     class_idxes = boxes.cls.int().cpu().tolist()
     confidences = boxes.conf.int().cpu().tolist()
-    track_ids = boxes.id.int().cpu().tolist() if boxes.id else [None] * len(class_idxes)
+    track_ids = boxes.id.int().cpu().tolist() if boxes.id is not None else [None] * len(class_idxes)
 
     detections = [Detection(model.names[ci], c, t) for ci, t, c in zip(class_idxes, track_ids, confidences)]
 
