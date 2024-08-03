@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import logging
 from collections import Counter
 from datetime import datetime
 from io import BytesIO
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 
 from app.config import settings
 from model.detect import Detection, DetectionResult
+
+logging.basicConfig(level=logging.INFO)
 
 
 class HistorySaveRequest(BaseModel):
@@ -33,10 +36,13 @@ class HistorySaveRequest(BaseModel):
             counter = Counter(list(map(lambda d: d.class_name, detections)))
             return ' '.join(f'{k} {v}' for k, v in counter.items())
 
-        super().__init__(localDateTime=datetime.now().isoformat(), label=summary_detections(), base64Image=convert_base64())
+        super().__init__(localDateTime=datetime.now().isoformat(), label=summary_detections(),
+                         base64Image=convert_base64())
 
 
 async def async_save_history(result: DetectionResult):
+    logging.info("이상상황이 발생하여 이력을 저장합니다")
+
     asyncio.create_task(
         save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
     )
