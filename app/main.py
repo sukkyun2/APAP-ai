@@ -57,7 +57,6 @@ async def websocket_publisher(websocket: WebSocket):
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)  # byte to nparr
 
             result = track(img)
-            await async_save_history(result)
 
             # TODO 별도 이상상황으로 교체
             cell_phone_detected = any(det.class_name == 'cell phone' for det in result.detections)
