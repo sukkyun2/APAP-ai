@@ -8,7 +8,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api_response import ApiResponse
+from app.api_response import ApiResponse, ApiListResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import async_save_history
@@ -43,14 +43,14 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
     return ApiResponse.ok()
 
 
-@app.get("/api/exists-publisher")
-def exists_publisher() -> ApiResponse[bool]:
-    return ApiResponse[bool].ok_with_data(bool(manager.publisher))
+@app.get("/api/publishers")
+def exists_publisher() -> ApiListResponse[str]:
+    return ApiListResponse[str].ok_with_data(list(manager.publishers.keys()))
 
 
-@app.websocket("/ws/publisher")
-async def websocket_publisher(websocket: WebSocket):
-    await manager.connect(websocket)
+@app.websocket("/ws/publishers/{location_name}")
+async def websocket_publisher(websocket: WebSocket, location_name: str):
+    await manager.connect(location_name, websocket)
     try:
         while True:
             data = await websocket.receive_bytes()
@@ -61,22 +61,23 @@ async def websocket_publisher(websocket: WebSocket):
             # TODO 별도 이상상황으로 교체
             cell_phone_detected = any(det.class_name == 'cell phone' for det in result.detections)
             if cell_phone_detected:
-                await async_save_history(result)
+                pass
+                # await async_save_history(result)
             # video_recorder.save_frame(result.predict_image_np)
 
-            await manager.broadcast(result.get_encoded_nparr().tobytes())
+            await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
-        manager.disconnect()
+        manager.disconnect(location_name)
         print("Publisher disconnected")
 
 
-@app.websocket("/ws/subscriber")
-async def websocket_subscriber(websocket: WebSocket):
-    await manager.subscribe(websocket)
+@app.websocket("/ws/subscribers/{location_name}")
+async def websocket_subscriber(location_name: str, websocket: WebSocket):
+    await manager.subscribe(location_name, websocket)
     try:
         while True:
             await asyncio.sleep(1)
     except WebSocketDisconnect:
         print("Subscriber disconnected")
     finally:
-        manager.unsubscribe(websocket)
+        manager.unsubscribe(location_name, websocket)
