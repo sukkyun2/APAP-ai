@@ -13,6 +13,7 @@ from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import async_save_history
 from model.detect import detect, track
+from model.video_recorder import VideoRecorder
 
 app = FastAPI()
 
@@ -25,9 +26,6 @@ app.add_middleware(
 )
 
 manager = ConnectionManager()
-
-
-# video_recorder = VideoRecorder()
 
 
 @app.post("/api/detect-image", response_model=ApiResponse)
@@ -51,19 +49,23 @@ def exists_publisher() -> ApiListResponse[str]:
 @app.websocket("/ws/publishers/{location_name}")
 async def websocket_publisher(websocket: WebSocket, location_name: str):
     await manager.connect(location_name, websocket)
+    video_recorder = VideoRecorder()
+
     try:
         while True:
+            # pre-processing
             data = await websocket.receive_bytes()
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)  # byte to nparr
 
             result = track(img)
 
             # TODO 별도 이상상황으로 교체
-            cell_phone_detected = any(det.class_name == 'cell phone' for det in result.detections)
-            if cell_phone_detected:
-                pass
-                # await async_save_history(result)
-            # video_recorder.save_frame(result.predict_image_np)
+            if result.is_abnormal_pattern_detected():
+                video_recorder.start_record_if_not()
+                await async_save_history(result)
+
+            if video_recorder.is_recording:
+                video_recorder.record_frame(result.predict_image_np)
 
             await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
