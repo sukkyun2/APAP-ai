@@ -27,9 +27,12 @@ class DetectionResult:
     def get_image(self) -> Image:
         return img.fromarray(self.predict_image_np[..., ::-1])
 
-    def get_encoded_nparr(self):
+    def get_encoded_nparr(self) -> ndarray:
         _, predicted_encode_nparr = cv2.imencode('.jpg', self.predict_image_np)
         return predicted_encode_nparr
+
+    def is_abnormal_pattern_detected(self) -> bool:
+        return any(det.class_name == 'person' for det in self.detections)
 
 
 def track(image_np: ndarray) -> DetectionResult:
