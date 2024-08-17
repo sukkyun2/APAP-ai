@@ -65,7 +65,7 @@ async def websocket_publisher(websocket: WebSocket, location_name: str):
                 await async_save_history(result)
 
             if video_recorder.is_recording:
-                video_recorder.record_frame(result.predict_image_np)
+                video_recorder.record_frame(result.plot_image)
 
             await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
