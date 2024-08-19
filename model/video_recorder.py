@@ -4,7 +4,7 @@ import time
 import cv2
 from numpy import ndarray
 
-MAX_RECORD_TIME: int = 10
+MAX_RECORD_TIME: int = 30
 
 
 class VideoRecorder:
