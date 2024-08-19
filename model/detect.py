@@ -1,7 +1,9 @@
+import logging
 from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
+import torch
 from PIL import Image as img
 from numpy import ndarray
 from ultralytics import YOLO
@@ -10,6 +12,10 @@ from app.config import settings
 from model.schema import Detection, TrackedObject, DetectionResult
 
 model = YOLO(settings.yolo_weight_path)
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+model.to(device)
+print(f"Model run on the {device}")
 
 tracked_objects: Dict[int, TrackedObject] = {}
 
