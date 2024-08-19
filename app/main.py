@@ -12,7 +12,7 @@ from app.api_response import ApiResponse, ApiListResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import async_save_history
-from model.detect import detect, track, estimate_distance, DetectionResult
+from model.detect import detect, estimate_distance, DetectionResult
 from model.video_recorder import VideoRecorder
 
 app = FastAPI()
@@ -36,7 +36,7 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
         return ApiResponse.bad_request(str(err))
 
     result = detect(np.array(img))
-    await async_save_history(result)
+    await async_save_history(result, "NONE")
 
     return ApiResponse.ok()
 
@@ -65,7 +65,7 @@ async def websocket_publisher(websocket: WebSocket, location_name: str):
             if video_recorder.is_recording:
                 video_recorder.record_frame(result.plot_image)
 
-            await manager.broadcast(location_name, result.plot_image.tobytes())
+            await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
         manager.disconnect(location_name)
         print("Publisher disconnected")

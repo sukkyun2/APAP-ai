@@ -1,7 +1,9 @@
 from typing import List, Optional
 
+import cv2
 import numpy as np
 from PIL import Image as img
+from numpy import ndarray
 
 
 class TrackedObject:
@@ -37,3 +39,7 @@ class DetectionResult:
 
     def get_image(self) -> img:
         return img.fromarray(self.plot_image[..., ::-1])
+
+    def get_encoded_nparr(self) -> ndarray:
+        _, encoded_nparr = cv2.imencode('.jpg', self.plot_image)
+        return encoded_nparr
