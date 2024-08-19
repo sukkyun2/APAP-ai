@@ -24,6 +24,9 @@ class Detection:
     @staticmethod
     def calculate_centroid(bbox: List[float]) -> tuple[int, int]:
         """Calculates the centroid of a bounding box."""
+        if not bbox:
+            return -1, -1
+
         return int((bbox[0] + bbox[2]) // 2), int((bbox[1] + bbox[3]) // 2)
 
 

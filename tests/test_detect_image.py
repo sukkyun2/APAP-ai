@@ -50,8 +50,8 @@ def test_detect_invalid_file_format(api_client: TestClient):
 async def test_save_detections_api(httpx_mock: HTTPXMock):
     given_image = Image.open('tests/resources/bus.jpg')
     given_detections = [
-        Detection(class_name='person', confidence=0.884, track_id=None),
-        Detection(class_name='bus', confidence=0.374, track_id=None),
+        Detection(class_name='person', confidence=0.884, track_id=None, bbox=[]),
+        Detection(class_name='bus', confidence=0.374, track_id=None, bbox=[]),
     ]
     httpx_mock.add_response()
     req = HistorySaveRequest(image=given_image, detections=given_detections)

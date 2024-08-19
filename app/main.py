@@ -61,7 +61,7 @@ async def websocket_publisher(websocket: WebSocket, location_name: str):
             if pattern_detected:
                 print("Pattern Detected")
                 video_recorder.start_record_if_not()
-                await async_save_history(result)
+                await async_save_history(result, location_name)
             if video_recorder.is_recording:
                 video_recorder.record_frame(result.plot_image)
 
