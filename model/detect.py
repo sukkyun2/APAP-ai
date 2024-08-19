@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
@@ -7,54 +7,9 @@ from numpy import ndarray
 from ultralytics import YOLO
 
 from app.config import settings
+from model.schema import Detection, TrackedObject, DetectionResult
 
 model = YOLO(settings.yolo_weight_path)
-
-
-class TrackedObject:
-    def __init__(self, obj_id: int, center: tuple[int, int]):
-        self.obj_id = obj_id
-        self.current_center = center
-
-    def update_position(self, new_center: tuple[int, int]):
-        self.current_center = new_center
-
-
-class Detection:
-    def __init__(self, class_name: str, confidence: float, track_id: Optional[int], bbox: List[float]):
-        self.class_name = class_name
-        self.confidence = confidence
-        self.track_id = track_id
-        self.bbox = bbox
-        self.center = self.calculate_centroid(bbox)
-
-    @staticmethod
-    def calculate_centroid(bbox: List[float]) -> tuple[int, int]:
-        """Calculates the centroid of a bounding box."""
-        return int((bbox[0] + bbox[2]) // 2), int((bbox[1] + bbox[3]) // 2)
-
-
-class DetectionResult:
-    def __init__(self, plot_image: np.ndarray, detections: List[Detection]):
-        self.plot_image = plot_image
-        self.detections = detections
-
-    def get_image(self) -> img:
-        return img.fromarray(self.plot_image[..., ::-1])
-
-    def get_encoded_nparr(self) -> ndarray:
-        _, encoded_nparr = cv2.imencode('.jpg', self.plot_image)
-        return encoded_nparr
-
-    def is_abnormal_pattern_detected(self) -> bool:
-        return any(det.class_name == 'person' for det in self.detections)
-
-
-class DistanceEstimationResult:
-    def __init__(self, distance: List[Tuple[int, int, float]], detect_result: DetectionResult):
-        self.distance = distance
-        self.result = detect_result
-
 
 tracked_objects: Dict[int, TrackedObject] = {}
 
@@ -74,7 +29,7 @@ def track(image_np: ndarray) -> DetectionResult:
     return DetectionResult(result.plot(), detections)
 
 
-def estimate_distance(image_np: ndarray) -> DistanceEstimationResult:
+def estimate_distance(image_np: ndarray) -> tuple[list[tuple[int, int, float]], DetectionResult]:
     result = track(image_np)
     non_person_detections = []
     person_detections = []
@@ -96,7 +51,7 @@ def estimate_distance(image_np: ndarray) -> DistanceEstimationResult:
     distances = calculate_distance_between_person_and_others(result.plot_image, person_detections,
                                                              non_person_detections)
 
-    return DistanceEstimationResult(distances, result)
+    return distances, result
 
 
 def calculate_distance_between_person_and_others(image_np: np.ndarray, person_detections: List[Detection],
@@ -127,15 +82,6 @@ def calculate_distance_between_person_and_others(image_np: np.ndarray, person_de
             distances.append((person.track_id, non_person.track_id, distance))
 
     return distances
-
-
-# def draw_detections(image_np: np.ndarray, detections: List[Detection]):
-#     """Draw detections on the image."""
-#     for detection in detections:
-#         center = (int(detection.center[0]), int(detection.center[1]))
-#         cv2.circle(image_np, center, 5, (0, 255, 0), -1)
-#         cv2.putText(image_np, f'ID: {detection.track_id}', (center[0], center[1] - 10),
-#                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
 
 def detect(image_np: ndarray) -> DetectionResult:
