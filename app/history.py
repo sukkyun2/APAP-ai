@@ -20,8 +20,9 @@ class HistorySaveRequest(BaseModel):
     localDateTime: str
     label: str
     base64Image: str
+    cameraName: str
 
-    def __init__(self, image: Image, detections: List[Detection]):
+    def __init__(self, image: Image, detections: List[Detection], location_name: str):
         def convert_base64():
             image_format = 'JPEG'
             buffered = BytesIO()
@@ -37,14 +38,14 @@ class HistorySaveRequest(BaseModel):
             return ' '.join(f'{k} {v}' for k, v in counter.items())
 
         super().__init__(localDateTime=datetime.now().isoformat(), label=summary_detections(),
-                         base64Image=convert_base64())
+                         base64Image=convert_base64(), cameraName=location_name)
 
 
-async def async_save_history(result: DetectionResult):
+async def async_save_history(result: DetectionResult, location_name: str):
     logging.info("이상상황이 발생하여 이력을 저장합니다")
 
     asyncio.create_task(
-        save_history(HistorySaveRequest(image=result.get_image(), detections=result.detections))
+        save_history(HistorySaveRequest(result.get_image(), result.detections, location_name))
     )
 
 
