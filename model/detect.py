@@ -1,4 +1,3 @@
-import logging
 from typing import List, Dict, Tuple
 
 import cv2
@@ -33,6 +32,48 @@ def track(image_np: ndarray) -> DetectionResult:
                   zip(class_idxes, track_ids, confidences, bboxes)]
 
     return DetectionResult(result.plot(), detections)
+
+
+def define_zone(image_np: ndarray) -> list[int]:
+    height, width = image_np.shape[:2]
+    return [width // 4, height // 4, width // 2, height // 2]
+
+
+def draw_zone(image_np: ndarray, zone: list[int]) -> ndarray:
+    image_with_zone = cv2.rectangle(image_np.copy(), (zone[0], zone[1]), (zone[2], zone[3]), (0, 0, 255), 2)
+    label_text = "Danger Zone"
+    label_position = (zone[0] + 10, zone[1] - 10)
+    cv2.putText(image_with_zone, label_text, label_position, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+
+    return image_with_zone
+
+
+def check_intruded(bbox: list[float], zone: list[int]) -> bool:
+    x1, y1, x2, y2 = map(int, bbox)
+    return not (x2 < zone[0] or x1 > zone[2] or y2 < zone[1] or y1 > zone[3])
+
+
+def area_intrusion(image_np: ndarray) -> tuple[bool, DetectionResult]:
+    zone = define_zone(image_np)
+    result = track(image_np)
+
+    image_with_zone = draw_zone(image_np, zone)
+    intrusion_detections = []
+    intrusion = False
+
+    for d in result.detections:
+        class_name, track_id, confidence, bbox = d.class_name, d.track_id, d.confidence, d.bbox
+        x1, y1, x2, y2 = map(int, bbox)
+
+        if class_name == 'person' and check_intruded(bbox, zone):
+            intrusion = True
+            intrusion_detections.append(d)
+
+            image_with_zone = cv2.rectangle(image_with_zone, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(image_with_zone, f'{class_name}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                        (0, 255, 0), 2)
+
+    return intrusion, DetectionResult(image_with_zone, intrusion_detections)
 
 
 def estimate_distance(image_np: ndarray) -> tuple[list[tuple[int, int, float]], DetectionResult]:
