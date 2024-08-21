@@ -1,5 +1,6 @@
 import asyncio
 from io import BytesIO
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -7,12 +8,14 @@ from PIL import Image
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.params import Query
 
 from app.api_response import ApiResponse, ApiListResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import async_save_history
-from model.detect import detect, estimate_distance, DetectionResult
+from model.detect import detect, estimate_distance, DetectionResult, area_intrusion
+from model.operations import OperationType, define_operation
 from model.video_recorder import VideoRecorder
 
 app = FastAPI()
@@ -47,9 +50,10 @@ def exists_publisher() -> ApiListResponse[str]:
 
 
 @app.websocket("/ws/publishers/{location_name}")
-async def websocket_publisher(websocket: WebSocket, location_name: str):
+async def websocket_publisher(websocket: WebSocket,
+                              location_name: str,
+                              op: Optional[OperationType] = Query(OperationType.ESTIMATE_DISTANCE)):
     await manager.connect(location_name, websocket)
-    video_recorder = VideoRecorder()
 
     try:
         while True:
@@ -57,25 +61,15 @@ async def websocket_publisher(websocket: WebSocket, location_name: str):
             data = await websocket.receive_bytes()
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)  # byte to nparr
 
-            pattern_detected, result = handle_estimate_distance(img)
+            operation = define_operation(op)
+            pattern_detected, result = operation(img)
             if pattern_detected:
-                print("Pattern Detected")
-                video_recorder.start_record_if_not()
                 await async_save_history(result, location_name)
-            if video_recorder.is_recording:
-                video_recorder.record_frame(result.plot_image)
 
             await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
         manager.disconnect(location_name)
         print("Publisher disconnected")
-
-
-def handle_estimate_distance(img) -> tuple[bool, DetectionResult]:
-    distances, result = estimate_distance(img)
-    pattern_detected = any(distance <= 200 for _, _, distance in distances)
-
-    return pattern_detected, result
 
 
 @app.websocket("/ws/subscribers/{location_name}")
