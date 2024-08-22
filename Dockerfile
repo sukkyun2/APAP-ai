@@ -18,7 +18,7 @@ COPY poetry.lock pyproject.toml ./
 # this will create the folder /app/.venv (might need adjustment depending on which poetry version you are using)
 RUN poetry install --no-root --no-ansi --without test
 
-FROM python:3.9-slim AS runtime
+FROM python:3.11-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
