@@ -17,6 +17,7 @@ from app.history import async_save_history
 from model.detect import detect, estimate_distance, DetectionResult, area_intrusion
 from model.operations import OperationType, define_operation
 from model.video_recorder import VideoRecorder
+import model.fin
 
 app = FastAPI()
 
@@ -43,12 +44,6 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
 
     return ApiResponse.ok()
 
-
-@app.get("/api/publishers")
-def exists_publisher() -> ApiListResponse[str]:
-    return ApiListResponse[str].ok_with_data(list(manager.publishers.keys()))
-
-
 @app.websocket("/ws/publishers/{location_name}")
 async def websocket_publisher(websocket: WebSocket,
                               location_name: str,
@@ -70,6 +65,27 @@ async def websocket_publisher(websocket: WebSocket,
     except WebSocketDisconnect:
         manager.disconnect(location_name)
         print("Publisher disconnected")
+
+'''
+@app.websocket("/ws/publishers/{location_name}")
+async def websocket_publisher(websocket: WebSocket,
+                              location_name: str,
+                              op: Optional[OperationType] = Query(OperationType.ESTIMATE_DISTANCE)):
+    await manager.connect(location_name, websocket)
+    try:
+        monitoring_system = model.fin.CCTVMonitoringSystem()
+        while True:
+            data = await websocket.receive_bytes()
+            img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)  # byte to nparr
+            annotated_frame, gpt_response = monitoring_system.process_single_frame(img)
+
+            _, encoded_annotated_frame = cv2.imencode('.jpg', annotated_frame)
+            byted_annotated_frame = encoded_annotated_frame.tobytes()
+            await websocket.send_bytes(byted_annotated_frame)
+
+    except WebSocketDisconnect:
+        manager.disconnect(location_name)
+        print("Publisher disconnected")'''
 
 
 @app.websocket("/ws/subscribers/{location_name}")
