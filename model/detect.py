@@ -11,15 +11,21 @@ from app.config import settings
 from model.schema import Detection, TrackedObject, DetectionResult
 
 model = YOLO(settings.yolo_weight_path)
+model2 = YOLO(settings.yolo_weight_path)
+custom_model = YOLO(settings.custom_yolo_weight_path)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model.to(device)
+model2.to(device)
+custom_model.to(device)
 print(f"Model run on the {device}")
+print(f"General Model weight path : {settings.yolo_weight_path}")
+print(f"Custom Model weight path : {settings.custom_yolo_weight_path}")
 
 tracked_objects: Dict[int, TrackedObject] = {}
 
 
-def track(image_np: ndarray) -> DetectionResult:
+def track(image_np: ndarray, model: YOLO) -> DetectionResult:
     result = model.track(image_np, persist=True)[0]
     boxes = result.boxes
 
@@ -55,7 +61,7 @@ def check_intruded(bbox: list[float], zone: list[int]) -> bool:
 
 def area_intrusion(image_np: ndarray) -> tuple[bool, DetectionResult]:
     zone = define_zone(image_np)
-    result = track(image_np)
+    result = track(image_np, model)
 
     image_with_zone = draw_zone(image_np, zone)
     intrusion_detections = []
@@ -77,7 +83,7 @@ def area_intrusion(image_np: ndarray) -> tuple[bool, DetectionResult]:
 
 
 def estimate_distance(image_np: ndarray) -> tuple[list[tuple[int, int, float]], DetectionResult]:
-    result = track(image_np)
+    result = track(image_np, model2)
     non_person_detections = []
     person_detections = []
 
@@ -129,6 +135,20 @@ def calculate_distance_between_person_and_others(image_np: np.ndarray, person_de
             distances.append((person.track_id, non_person.track_id, distance))
 
     return distances
+
+
+def detect_by_custom_model(image_np: ndarray) -> DetectionResult:
+    result = custom_model.predict(image_np)[0]
+    boxes = result.boxes
+
+    class_idxes = boxes.cls.int().cpu().tolist()
+    confidences = boxes.conf.int().cpu().tolist()
+    bboxes = boxes.xyxy.cpu().tolist()
+
+    detections = [Detection(model.names[ci], c, None, bbox) for ci, c, bbox in
+                  zip(class_idxes, confidences, bboxes)]
+
+    return DetectionResult(result.plot(), detections)
 
 
 def detect(image_np: ndarray) -> DetectionResult:

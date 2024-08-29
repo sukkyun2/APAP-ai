@@ -1,4 +1,6 @@
 import asyncio
+import os
+import tempfile
 from io import BytesIO
 from typing import Optional
 
@@ -8,16 +10,14 @@ from PIL import Image
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi import UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.params import Query
+from fastapi.params import Query, Form
 
 from app.api_response import ApiResponse, ApiListResponse
 from app.config import settings
 from app.connection_manager import ConnectionManager
 from app.history import async_save_history
-from model.detect import detect, estimate_distance, DetectionResult, area_intrusion
+from model.detect import detect
 from model.operations import OperationType, define_operation
-from model.video_recorder import VideoRecorder
-import model.fin
 
 app = FastAPI()
 
@@ -40,9 +40,52 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
         return ApiResponse.bad_request(str(err))
 
     result = detect(np.array(img))
-    await async_save_history(result, "NONE")
+    await async_save_history(result, "NONE", OperationType.NONE)
 
     return ApiResponse.ok()
+
+
+@app.get("/api/publishers")
+def exists_publisher() -> ApiListResponse[str]:
+    return ApiListResponse[str].ok_with_data(list(manager.publishers.keys()))
+
+
+@app.post("/api/detect-video")
+async def detect_video(file: UploadFile = File(...),
+                       location_name: str = Form(...),
+                       op: Optional[OperationType] = Form(...)):
+    file_content = await file.read()
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+        temp_file.write(file_content)
+        temp_file_path = temp_file.name
+
+    cap = cv2.VideoCapture(temp_file_path)
+
+    if not cap.isOpened():
+        os.remove(temp_file_path)
+        return ApiResponse.bad_request("Error opening video file")
+
+    async def process_video():
+        while True:
+            ret, img = cap.read()
+            if not ret:
+                break
+
+            operation = define_operation(op)
+            pattern_detected, result = operation(img)
+            if pattern_detected:
+                await async_save_history(result, location_name, op)
+
+            await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
+
+        cap.release()
+        os.remove(temp_file_path)
+
+    asyncio.create_task(process_video())
+
+    return ApiResponse.ok()
+
 
 @app.websocket("/ws/publishers/{location_name}")
 async def websocket_publisher(websocket: WebSocket,
@@ -59,12 +102,13 @@ async def websocket_publisher(websocket: WebSocket,
             operation = define_operation(op)
             pattern_detected, result = operation(img)
             if pattern_detected:
-                await async_save_history(result, location_name)
+                await async_save_history(result, location_name, op)
 
             await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
         manager.disconnect(location_name)
         print("Publisher disconnected")
+
 
 '''
 @app.websocket("/ws/publishers/{location_name}")
