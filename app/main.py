@@ -1,5 +1,4 @@
 import asyncio
-import io
 import os
 import tempfile
 from io import BytesIO
@@ -41,7 +40,7 @@ async def detect_image(file: UploadFile = File(...)) -> ApiResponse:
         return ApiResponse.bad_request(str(err))
 
     result = detect(np.array(img))
-    await async_save_history(result, "NONE")
+    await async_save_history(result, "NONE", OperationType.NONE)
 
     return ApiResponse.ok()
 
@@ -76,7 +75,7 @@ async def detect_video(file: UploadFile = File(...),
             operation = define_operation(op)
             pattern_detected, result = operation(img)
             if pattern_detected:
-                await async_save_history(result, location_name)
+                await async_save_history(result, location_name, op)
 
             await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
 
@@ -103,12 +102,34 @@ async def websocket_publisher(websocket: WebSocket,
             operation = define_operation(op)
             pattern_detected, result = operation(img)
             if pattern_detected:
-                await async_save_history(result, location_name)
+                await async_save_history(result, location_name, op)
 
             await manager.broadcast(location_name, result.get_encoded_nparr().tobytes())
     except WebSocketDisconnect:
         manager.disconnect(location_name)
         print("Publisher disconnected")
+
+
+'''
+@app.websocket("/ws/publishers/{location_name}")
+async def websocket_publisher(websocket: WebSocket,
+                              location_name: str,
+                              op: Optional[OperationType] = Query(OperationType.ESTIMATE_DISTANCE)):
+    await manager.connect(location_name, websocket)
+    try:
+        monitoring_system = model.fin.CCTVMonitoringSystem()
+        while True:
+            data = await websocket.receive_bytes()
+            img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)  # byte to nparr
+            annotated_frame, gpt_response = monitoring_system.process_single_frame(img)
+
+            _, encoded_annotated_frame = cv2.imencode('.jpg', annotated_frame)
+            byted_annotated_frame = encoded_annotated_frame.tobytes()
+            await websocket.send_bytes(byted_annotated_frame)
+
+    except WebSocketDisconnect:
+        manager.disconnect(location_name)
+        print("Publisher disconnected")'''
 
 
 @app.websocket("/ws/subscribers/{location_name}")

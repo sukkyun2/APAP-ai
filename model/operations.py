@@ -8,6 +8,7 @@ class OperationType(StrEnum):
     ESTIMATE_DISTANCE = "estimate_distance",
     AREA_INTRUSION = "area_intrusion"
     CUSTOM_MODEL = "custom_model"
+    NONE = "none"
 
 
 def define_operation(op: OperationType):
