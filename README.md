@@ -8,8 +8,6 @@ This repository is used for 스마트해상물류 ICT project.
 
 ## How to Use
 
---- 
-
 ### Operations
 There are three operations: `estimate_distance`, `custom_model`, and `area_intrusion`. 
 Each of these operations can be used to detect different anomalies in video.
@@ -39,9 +37,13 @@ Subscribers receive processed frames based on the operation specified. For examp
 - `{host}`: APAP AI server address
 - `{location_name}`: Camera location or context
 
-## How to Run
+
+   
+<img src="https://github.com/user-attachments/assets/3993ee1a-af1e-46a4-aea9-951a74fb76b5" alt="image" width="800"/>
 
 ---
+
+## How to Run
 
 ### Install
 
