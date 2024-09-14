@@ -40,28 +40,28 @@ def track(image_np: ndarray, model: YOLO) -> DetectionResult:
     return DetectionResult(result.plot(), detections)
 
 
-def define_zone(image_np: ndarray) -> list[int]:
+def define_zone(image_np: np.ndarray) -> List[int]:
     height, width = image_np.shape[:2]
-    return [width // 4, height // 4, width // 2, height // 2]
+    # Define the danger zone at the right center of the image
+    return [width - width // 4, height // 4, width, height // 2]
 
 
-def draw_zone(image_np: ndarray, zone: list[int]) -> ndarray:
+def draw_zone(image_np: np.ndarray, zone: List[int]) -> np.ndarray:
     image_with_zone = cv2.rectangle(image_np.copy(), (zone[0], zone[1]), (zone[2], zone[3]), (0, 0, 255), 2)
     label_text = "Danger Zone"
     label_position = (zone[0] + 10, zone[1] - 10)
     cv2.putText(image_with_zone, label_text, label_position, cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
     return image_with_zone
 
 
-def check_intruded(bbox: list[float], zone: list[int]) -> bool:
+def check_intruded(bbox: List[float], zone: List[int]) -> bool:
     x1, y1, x2, y2 = map(int, bbox)
     return not (x2 < zone[0] or x1 > zone[2] or y2 < zone[1] or y1 > zone[3])
 
 
-def area_intrusion(image_np: ndarray) -> tuple[bool, DetectionResult]:
+def area_intrusion(image_np: np.ndarray) -> Tuple[bool, DetectionResult]:
     zone = define_zone(image_np)
-    result = track(image_np, model)
+    result = track(image_np, model)  # Assume track and model are defined elsewhere
 
     image_with_zone = draw_zone(image_np, zone)
     intrusion_detections = []
@@ -75,9 +75,10 @@ def area_intrusion(image_np: ndarray) -> tuple[bool, DetectionResult]:
             intrusion = True
             intrusion_detections.append(d)
 
-            image_with_zone = cv2.rectangle(image_with_zone, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            # Draw bounding box in red if it intrudes into the danger zone
+            image_with_zone = cv2.rectangle(image_with_zone, (x1, y1), (x2, y2), (0, 0, 255), 2)
             cv2.putText(image_with_zone, f'{class_name}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        (0, 255, 0), 2)
+                        (0, 0, 255), 2)
 
     return intrusion, DetectionResult(image_with_zone, intrusion_detections)
 
@@ -115,6 +116,10 @@ def calculate_distance_between_person_and_others(image_np: np.ndarray, person_de
     def calculate_distance(p1, p2):
         return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
+    def draw_bounding_box(image, bbox, color):
+        x_min, y_min, x_max, y_max = map(int, bbox)
+        cv2.rectangle(image, (x_min, y_min), (x_max, y_max), color, 2)
+
     distances = []
 
     for person in person_detections:
@@ -134,6 +139,24 @@ def calculate_distance_between_person_and_others(image_np: np.ndarray, person_de
 
             distances.append((person.track_id, non_person.track_id, distance))
 
+            if distance < 300:
+                # Get the bounding boxes
+                person_bbox = person.bbox
+                non_person_bbox = non_person.bbox
+
+                # Calculate the bounding box that contains both bounding boxes
+                x_min = min(person_bbox[0], non_person_bbox[0])
+                y_min = min(person_bbox[1], non_person_bbox[1])
+                x_max = max(person_bbox[2], non_person_bbox[2])
+                y_max = max(person_bbox[3], non_person_bbox[3])
+
+                # Draw the larger bounding box in red
+                draw_bounding_box(image_np, [x_min, y_min, x_max, y_max], (0, 0, 255))
+
+                # Draw labels indicating collision in red
+                cv2.putText(image_np, 'Collision', (int(x_min), int(y_min) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
     return distances
 
 
@@ -145,7 +168,7 @@ def detect_by_custom_model(image_np: ndarray) -> DetectionResult:
     confidences = boxes.conf.int().cpu().tolist()
     bboxes = boxes.xyxy.cpu().tolist()
 
-    detections = [Detection(model.names[ci], c, None, bbox) for ci, c, bbox in
+    detections = [Detection(custom_model.names[ci], c, None, bbox) for ci, c, bbox in
                   zip(class_idxes, confidences, bboxes)]
 
     return DetectionResult(result.plot(), detections)

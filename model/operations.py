@@ -22,7 +22,7 @@ def define_operation(op: OperationType):
 
 def handle_estimate_distance(img) -> tuple[bool, DetectionResult]:
     distances, result = estimate_distance(img)
-    pattern_detected = any(distance <= 200 for _, _, distance in distances)
+    pattern_detected = any(distance <= 300 for _, _, distance in distances)
 
     return pattern_detected, result
 

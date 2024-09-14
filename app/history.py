@@ -53,7 +53,6 @@ async def async_save_history(result: DetectionResult, location_name: str, op: Op
 
 
 async def save_history(req: HistorySaveRequest):
-    print(req.label)
     try:
         async with httpx.AsyncClient() as client:
             await client.post(f"{settings.history_api}/api/infos", json=req.dict())
